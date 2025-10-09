@@ -1,5 +1,6 @@
 import { Link } from "react-router-dom";
 import { Github, Twitter, Linkedin, Mail } from "lucide-react";
+import logo from "@/assets/logo.png";
 
 const Footer = () => {
   return (
@@ -9,7 +10,7 @@ const Footer = () => {
           {/* Brand */}
           <div className="space-y-4">
             <div className="flex items-center space-x-2">
-              <div className="h-8 w-8 rounded-lg bg-gradient-primary" />
+              <img src={logo} alt="NexusAPI" className="h-8 w-8" />
               <span className="text-xl font-bold">NexusAPI</span>
             </div>
             <p className="text-sm text-muted-foreground">
