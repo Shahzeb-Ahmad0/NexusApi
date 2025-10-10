@@ -1,14 +1,27 @@
 import { useParams } from "react-router-dom";
+import { useState } from "react";
 import Navigation from "@/components/Navigation";
 import Footer from "@/components/Footer";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { Star, Lock, ExternalLink, Code, Play, Video } from "lucide-react";
+import { Input } from "@/components/ui/input";
+import { Star, Lock, ExternalLink, Code, Play, Video, Loader2 } from "lucide-react";
+import { useToast } from "@/hooks/use-toast";
 
 const ApiDetail = () => {
   const { id } = useParams();
+  const { toast } = useToast();
+  
+  // Live Test state
+  const [cityName, setCityName] = useState("");
+  const [isLoading, setIsLoading] = useState(false);
+  const [weatherData, setWeatherData] = useState<any>(null);
+  const [error, setError] = useState("");
+
+  // Temporary API key for hackathon demo
+  const OPENWEATHER_API_KEY = "bd5e378503939ddaee76f12ad7a97608";
 
   // Mock data - will be replaced with actual API data
   const apiData = {
@@ -33,6 +46,48 @@ const ApiDetail = () => {
         parameters: ["q (city name)", "appid (API key)", "units"],
       },
     ],
+  };
+
+  const handleTestApi = async () => {
+    if (!cityName.trim()) {
+      setError("Please enter a city name");
+      return;
+    }
+
+    setIsLoading(true);
+    setError("");
+    setWeatherData(null);
+
+    try {
+      const response = await fetch(
+        `https://api.openweathermap.org/data/2.5/weather?q=${encodeURIComponent(
+          cityName
+        )}&appid=${OPENWEATHER_API_KEY}&units=metric`
+      );
+
+      if (!response.ok) {
+        if (response.status === 404) {
+          throw new Error("City not found. Please check the spelling and try again.");
+        }
+        throw new Error("Failed to fetch weather data. Please try again.");
+      }
+
+      const data = await response.json();
+      setWeatherData(data);
+      toast({
+        title: "Success!",
+        description: `Weather data loaded for ${data.name}`,
+      });
+    } catch (err: any) {
+      setError(err.message);
+      toast({
+        title: "Error",
+        description: err.message,
+        variant: "destructive",
+      });
+    } finally {
+      setIsLoading(false);
+    }
   };
 
   return (
@@ -134,18 +189,107 @@ const ApiDetail = () => {
           <TabsContent value="playground">
             <Card>
               <CardHeader>
-                <CardTitle>API Testing Playground</CardTitle>
+                <CardTitle>Live API Test</CardTitle>
                 <CardDescription>
-                  Test API endpoints directly from your browser. Results will appear below.
+                  Test the OpenWeather API directly from your browser. Enter a city name to get real-time weather data.
                 </CardDescription>
               </CardHeader>
-              <CardContent className="space-y-4">
-                <div className="p-8 border-2 border-dashed border-border rounded-lg text-center">
-                  <Play className="h-12 w-12 mx-auto mb-4 text-muted-foreground" />
-                  <p className="text-muted-foreground">
-                    Interactive testing playground coming soon...
-                  </p>
+              <CardContent className="space-y-6">
+                {/* Input Form */}
+                <div className="flex gap-3">
+                  <Input
+                    placeholder="Enter city name (e.g., London, Tokyo, New York)"
+                    value={cityName}
+                    onChange={(e) => setCityName(e.target.value)}
+                    onKeyPress={(e) => e.key === "Enter" && handleTestApi()}
+                    className="flex-1"
+                  />
+                  <Button
+                    onClick={handleTestApi}
+                    disabled={isLoading}
+                    className="bg-gradient-primary hover:opacity-90"
+                  >
+                    {isLoading ? (
+                      <>
+                        <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                        Testing...
+                      </>
+                    ) : (
+                      <>
+                        <Play className="mr-2 h-4 w-4" />
+                        Test API
+                      </>
+                    )}
+                  </Button>
                 </div>
+
+                {/* Error Message */}
+                {error && (
+                  <div className="p-4 bg-destructive/10 border border-destructive rounded-lg">
+                    <p className="text-sm text-destructive font-medium">{error}</p>
+                  </div>
+                )}
+
+                {/* Weather Results */}
+                {weatherData && (
+                  <div className="space-y-4">
+                    <div className="p-6 bg-gradient-to-br from-primary/5 to-accent/5 rounded-lg border border-border">
+                      <div className="flex items-start justify-between mb-4">
+                        <div>
+                          <h3 className="text-2xl font-bold">{weatherData.name}, {weatherData.sys.country}</h3>
+                          <p className="text-sm text-muted-foreground capitalize">
+                            {weatherData.weather[0].description}
+                          </p>
+                        </div>
+                        <div className="text-right">
+                          <div className="text-4xl font-bold">{Math.round(weatherData.main.temp)}°C</div>
+                          <p className="text-sm text-muted-foreground">
+                            Feels like {Math.round(weatherData.main.feels_like)}°C
+                          </p>
+                        </div>
+                      </div>
+
+                      <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                        <div className="p-3 bg-background/50 rounded-lg">
+                          <p className="text-xs text-muted-foreground mb-1">Humidity</p>
+                          <p className="text-lg font-semibold">{weatherData.main.humidity}%</p>
+                        </div>
+                        <div className="p-3 bg-background/50 rounded-lg">
+                          <p className="text-xs text-muted-foreground mb-1">Pressure</p>
+                          <p className="text-lg font-semibold">{weatherData.main.pressure} hPa</p>
+                        </div>
+                        <div className="p-3 bg-background/50 rounded-lg">
+                          <p className="text-xs text-muted-foreground mb-1">Wind Speed</p>
+                          <p className="text-lg font-semibold">{weatherData.wind.speed} m/s</p>
+                        </div>
+                        <div className="p-3 bg-background/50 rounded-lg">
+                          <p className="text-xs text-muted-foreground mb-1">Visibility</p>
+                          <p className="text-lg font-semibold">{(weatherData.visibility / 1000).toFixed(1)} km</p>
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* Raw JSON Response */}
+                    <details className="group">
+                      <summary className="cursor-pointer p-3 bg-muted rounded-lg hover:bg-muted/80 transition-colors">
+                        <span className="font-medium">View Raw JSON Response</span>
+                      </summary>
+                      <pre className="mt-2 p-4 bg-muted rounded-lg text-xs overflow-x-auto">
+                        {JSON.stringify(weatherData, null, 2)}
+                      </pre>
+                    </details>
+                  </div>
+                )}
+
+                {/* Placeholder when no data */}
+                {!weatherData && !error && !isLoading && (
+                  <div className="p-8 border-2 border-dashed border-border rounded-lg text-center">
+                    <Play className="h-12 w-12 mx-auto mb-4 text-muted-foreground" />
+                    <p className="text-muted-foreground">
+                      Enter a city name and click "Test API" to see live weather data
+                    </p>
+                  </div>
+                )}
               </CardContent>
             </Card>
           </TabsContent>
