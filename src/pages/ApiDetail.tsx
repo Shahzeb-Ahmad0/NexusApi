@@ -20,8 +20,8 @@ const ApiDetail = () => {
   const [weatherData, setWeatherData] = useState<any>(null);
   const [error, setError] = useState("");
 
-  // Temporary API key for hackathon demo
-  const OPENWEATHER_API_KEY = "bd5e378503939ddaee76f12ad7a97608";
+  // OpenWeather API key
+  const OPENWEATHER_API_KEY = "ac71276c917ef319adf326821c2cafb7";
 
   // Mock data - will be replaced with actual API data
   const apiData = {
