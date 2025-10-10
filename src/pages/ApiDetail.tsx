@@ -1,4 +1,4 @@
-import { useParams } from "react-router-dom";
+import { useParams, Navigate } from "react-router-dom";
 import { useState } from "react";
 import Navigation from "@/components/Navigation";
 import Footer from "@/components/Footer";
@@ -10,21 +10,10 @@ import { Input } from "@/components/ui/input";
 import { Star, Lock, ExternalLink, Code, Play, Video, Loader2 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 
-const ApiDetail = () => {
-  const { id } = useParams();
-  const { toast } = useToast();
-  
-  // Live Test state
-  const [cityName, setCityName] = useState("");
-  const [isLoading, setIsLoading] = useState(false);
-  const [weatherData, setWeatherData] = useState<any>(null);
-  const [error, setError] = useState("");
-
-  // OpenWeather API key
-  const OPENWEATHER_API_KEY = "ac71276c917ef319adf326821c2cafb7";
-
-  // Mock data - will be replaced with actual API data
-  const apiData = {
+// Mock API data
+const mockApis = [
+  {
+    id: "openweather",
     name: "OpenWeather API",
     description: "Get current weather, forecasts, and historical weather data for any location worldwide. Access real-time weather conditions, 5-day forecasts, and climate data.",
     category: "Weather",
@@ -46,7 +35,197 @@ const ApiDetail = () => {
         parameters: ["q (city name)", "appid (API key)", "units"],
       },
     ],
-  };
+  },
+  {
+    id: "google-maps",
+    name: "Google Maps API",
+    description: "Embed maps, get directions, geocoding, and place information for web and mobile applications.",
+    category: "Maps",
+    rating: 4.9,
+    authType: "API Key",
+    isPremium: true,
+    baseUrl: "https://maps.googleapis.com/maps/api",
+    endpoints: [
+      {
+        method: "GET",
+        path: "/geocode/json",
+        description: "Convert addresses to geographic coordinates",
+        parameters: ["address", "key"],
+      },
+      {
+        method: "GET",
+        path: "/directions/json",
+        description: "Get directions between locations",
+        parameters: ["origin", "destination", "key"],
+      },
+    ],
+  },
+  {
+    id: "openai",
+    name: "OpenAI API",
+    description: "Access powerful AI models for text generation, completion, and embeddings. Build intelligent applications with GPT models.",
+    category: "AI & ML",
+    rating: 4.8,
+    authType: "Bearer Token",
+    isPremium: true,
+    baseUrl: "https://api.openai.com/v1",
+    endpoints: [
+      {
+        method: "POST",
+        path: "/chat/completions",
+        description: "Create a chat completion",
+        parameters: ["model", "messages", "temperature"],
+      },
+      {
+        method: "POST",
+        path: "/completions",
+        description: "Create a text completion",
+        parameters: ["model", "prompt", "max_tokens"],
+      },
+    ],
+  },
+  {
+    id: "stripe",
+    name: "Stripe API",
+    description: "Accept payments, manage subscriptions, and handle financial transactions securely for your business.",
+    category: "Finance",
+    rating: 4.6,
+    authType: "API Key",
+    isPremium: false,
+    baseUrl: "https://api.stripe.com/v1",
+    endpoints: [
+      {
+        method: "POST",
+        path: "/charges",
+        description: "Create a new charge",
+        parameters: ["amount", "currency", "source"],
+      },
+      {
+        method: "POST",
+        path: "/customers",
+        description: "Create a new customer",
+        parameters: ["email", "description"],
+      },
+    ],
+  },
+  {
+    id: "twitter",
+    name: "Twitter API",
+    description: "Post tweets, access timeline data, and interact with Twitter's platform programmatically.",
+    category: "Social",
+    rating: 4.3,
+    authType: "OAuth 2.0",
+    isPremium: false,
+    baseUrl: "https://api.twitter.com/2",
+    endpoints: [
+      {
+        method: "POST",
+        path: "/tweets",
+        description: "Create a new tweet",
+        parameters: ["text"],
+      },
+      {
+        method: "GET",
+        path: "/users/:id/tweets",
+        description: "Get user tweets",
+        parameters: ["id", "max_results"],
+      },
+    ],
+  },
+  {
+    id: "sendgrid",
+    name: "SendGrid API",
+    description: "Send transactional and marketing emails at scale with detailed analytics and delivery insights.",
+    category: "Utilities",
+    rating: 4.5,
+    authType: "API Key",
+    isPremium: false,
+    baseUrl: "https://api.sendgrid.com/v3",
+    endpoints: [
+      {
+        method: "POST",
+        path: "/mail/send",
+        description: "Send an email",
+        parameters: ["personalizations", "from", "subject", "content"],
+      },
+    ],
+  },
+  {
+    id: "rapid-translate",
+    name: "Google Translate API",
+    description: "Translate text between 100+ languages with high accuracy using Google's translation technology.",
+    category: "Utilities",
+    rating: 4.7,
+    authType: "API Key",
+    isPremium: false,
+    baseUrl: "https://translation.googleapis.com/language/translate/v2",
+    endpoints: [
+      {
+        method: "POST",
+        path: "/translate",
+        description: "Translate text",
+        parameters: ["q", "target", "key"],
+      },
+    ],
+  },
+  {
+    id: "coinbase",
+    name: "Coinbase API",
+    description: "Access cryptocurrency prices, wallet management, and trading features for digital assets.",
+    category: "Finance",
+    rating: 4.4,
+    authType: "OAuth 2.0",
+    isPremium: true,
+    baseUrl: "https://api.coinbase.com/v2",
+    endpoints: [
+      {
+        method: "GET",
+        path: "/prices/:currency_pair/spot",
+        description: "Get spot price",
+        parameters: ["currency_pair"],
+      },
+    ],
+  },
+  {
+    id: "anthropic",
+    name: "Anthropic Claude API",
+    description: "Advanced AI assistant for complex reasoning, analysis, and content generation with safety in mind.",
+    category: "AI & ML",
+    rating: 4.9,
+    authType: "API Key",
+    isPremium: true,
+    baseUrl: "https://api.anthropic.com/v1",
+    endpoints: [
+      {
+        method: "POST",
+        path: "/messages",
+        description: "Create a message",
+        parameters: ["model", "messages", "max_tokens"],
+      },
+    ],
+  },
+];
+
+const ApiDetail = () => {
+  const { id } = useParams();
+  const { toast } = useToast();
+  
+  // Live Test state (only for OpenWeather)
+  const [cityName, setCityName] = useState("");
+  const [isLoading, setIsLoading] = useState(false);
+  const [weatherData, setWeatherData] = useState<any>(null);
+  const [error, setError] = useState("");
+
+  // OpenWeather API key
+  const OPENWEATHER_API_KEY = "ac71276c917ef319adf326821c2cafb7";
+
+  // Find the API data based on the id from URL
+  const apiData = mockApis.find(api => api.id === id);
+
+  // If API not found, redirect to 404
+  if (!apiData) {
+    return <Navigate to="/404" replace />;
+  }
 
   const handleTestApi = async () => {
     if (!cityName.trim()) {
@@ -192,14 +371,15 @@ const ApiDetail = () => {
           </TabsContent>
 
           <TabsContent value="playground">
-            <Card>
-              <CardHeader>
-                <CardTitle>Live API Test</CardTitle>
-                <CardDescription>
-                  Test the OpenWeather API directly from your browser. Enter a city name to get real-time weather data.
-                </CardDescription>
-              </CardHeader>
-              <CardContent className="space-y-6">
+            {apiData.id === "openweather" ? (
+              <Card>
+                <CardHeader>
+                  <CardTitle>Live API Test</CardTitle>
+                  <CardDescription>
+                    Test the OpenWeather API directly from your browser. Enter a city name to get real-time weather data.
+                  </CardDescription>
+                </CardHeader>
+                <CardContent className="space-y-6">
                 {/* Input Form */}
                 <div className="flex gap-3">
                   <Input
@@ -297,6 +477,24 @@ const ApiDetail = () => {
                 )}
               </CardContent>
             </Card>
+            ) : (
+              <Card>
+                <CardHeader>
+                  <CardTitle>API Playground</CardTitle>
+                  <CardDescription>
+                    Interactive testing playground for {apiData.name}
+                  </CardDescription>
+                </CardHeader>
+                <CardContent>
+                  <div className="p-8 border-2 border-dashed border-border rounded-lg text-center">
+                    <Play className="h-12 w-12 mx-auto mb-4 text-muted-foreground" />
+                    <p className="text-muted-foreground">
+                      Live testing playground coming soon for {apiData.name}
+                    </p>
+                  </div>
+                </CardContent>
+              </Card>
+            )}
           </TabsContent>
 
           <TabsContent value="tutorials">
