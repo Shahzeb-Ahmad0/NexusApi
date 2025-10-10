@@ -65,24 +65,29 @@ const ApiDetail = () => {
         )}&appid=${OPENWEATHER_API_KEY}&units=metric`
       );
 
+      const data = await response.json();
+
       if (!response.ok) {
         if (response.status === 404) {
           throw new Error("City not found. Please check the spelling and try again.");
         }
-        throw new Error("Failed to fetch weather data. Please try again.");
+        if (response.status === 429) {
+          throw new Error("API rate limit exceeded. The demo API key has reached its limit. Please try again later or use your own OpenWeather API key.");
+        }
+        throw new Error(data.message || "Failed to fetch weather data. Please try again.");
       }
 
-      const data = await response.json();
       setWeatherData(data);
       toast({
         title: "Success!",
         description: `Weather data loaded for ${data.name}`,
       });
     } catch (err: any) {
-      setError(err.message);
+      const errorMessage = err.message || "Failed to fetch weather data. Please try again.";
+      setError(errorMessage);
       toast({
         title: "Error",
-        description: err.message,
+        description: errorMessage,
         variant: "destructive",
       });
     } finally {
